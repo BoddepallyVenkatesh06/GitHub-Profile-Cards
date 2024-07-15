@@ -1,0 +1,49 @@
+name: Test and Lint
+
+on:
+  push:
+    branches-ignore: [ release ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Collect Workflow Telemetry
+      uses: catchpoint/foresight-workflow-kit-action@v1
+      if: success() || failure()
+      with:
+        api_key: ${{ secrets.foresight_api_key }}
+
+    - uses: actions/checkout@v4
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.node-version'
+        cache: 'npm'
+    - run: npm install
+    - run: npm run test
+
+    - name: Analyze Test and/or Coverage Results
+      uses: catchpoint/foresight-test-kit-action@v1
+      if: success() || failure()
+      with:
+        api_key: ${{ secrets.foresight_api_key }}
+        test_format: JUNIT
+        test_framework: JEST
+        test_path: ./junit.xml
+        coverage_format: JACOCO/XML
+        coverage_path: ./coverage
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.node-version'
+        cache: 'npm'
+    - run: npm install
+    - run: npm run lint
